@@ -82,8 +82,14 @@ class AdvancedJIRAForm(BaseJiraForm):
             self.fields["password"].required = False
 
     def clean(self):
-        if self.instance and not self.cleaned_data["password"]:
-            self.cleaned_data["password"] = self.instance.password
+        stored_password = self.instance.password if self.instance.pk else ""
+        if stored_password and not self.cleaned_data.get("password"):
+            # Reuse the stored secret only for the destination it was stored against.
+            if (self.cleaned_data.get("url") or "").rstrip("/") == self.instance.url.rstrip("/"):
+                self.cleaned_data["password"] = stored_password
+            else:
+                self.add_error("password", "Enter the password or token again when you change the JIRA URL.")
+                return self.cleaned_data
         return super().clean()
 
     class Meta:

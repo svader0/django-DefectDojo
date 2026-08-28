@@ -499,23 +499,16 @@ class EditJiraView(View):
         if not user_has_configuration_permission(request.user, "dojo.change_jira_instance"):
             raise PermissionDenied
         jira = JIRA_Instance.objects.get(pk=jid)
-        jira_password_from_db = jira.password
         jform = self.get_form_class()(request.POST, instance=jira)
         if jform.is_valid():
             jira_server = jform.cleaned_data.get("url").rstrip("/")
             jira_username = jform.cleaned_data.get("username")
-
-            if jform.cleaned_data.get("password"):
-                jira_password = jform.cleaned_data.get("password")
-            else:
-                # on edit the password is optional
-                jira_password = jira_password_from_db
+            jira_password = jform.cleaned_data["password"]
 
             jira_helper.get_jira_connection_raw(jira_server, jira_username, jira_password)
 
             new_j = jform.save(commit=False)
             new_j.url = jira_server
-            # on edit the password is optional
             new_j.password = jira_password
             new_j.save()
             messages.add_message(
